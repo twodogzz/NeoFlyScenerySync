@@ -1,0 +1,15 @@
+
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net7.0-windows10.0.19041.0</TargetFramework>
+    <UseWinUI>true</UseWinUI>
+    <RootNamespace>NeoflySceneryCompiler</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.4.231008000" />
+  </ItemGroup>
+
+</Project>

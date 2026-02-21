@@ -1,0 +1,143 @@
+Yes, you can convert this functionality into a Windows 11 executable by creating a small application in a programming language like C# or Python, which is well-suited for file monitoring and manipulating backups. Here's an overview of how to achieve this:
+
+### Option 1: Using C# with .NET Framework
+C# is an excellent choice for creating a Windows executable. You can use the `FileSystemWatcher` class in C# to monitor file changes, similar to how it's done in PowerShell. You would compile the code into an executable using Visual Studio.
+
+Here's an outline of how the C# program would work:
+
+1. **Setup FileSystemWatcher**: Use the built-in `FileSystemWatcher` class to monitor the directory for file changes.
+2. **Trigger Event Handlers**: Handle the file changes by creating a backup of the file and saving it in the target directory.
+3. **Backup and Rename**: Before overwriting a file, rename the existing backup with a timestamp.
+4. **Cleanup Logic**: Implement logic to delete older backups and maintain only 20 most recent files.
+5. **Compile to Executable**: Use Visual Studio or the .NET CLI to compile the code into a standalone executable.
+
+#### Sample C# Code:
+```csharp
+using System;
+using System.IO;
+using System.Linq;
+
+class Program
+{
+    static void Main()
+    {
+        string sourceDir = @"C:\Users\wayne\AppData\Local\Programs\Sky4Sim NG";
+        string backupDir = @"F:\MSFS Addon-Library\Neofly";
+        string fileToWatch = "navdata.sqlite";
+
+        // Set up FileSystemWatcher
+        FileSystemWatcher watcher = new FileSystemWatcher
+        {
+            Path = sourceDir,
+            Filter = fileToWatch,
+            NotifyFilter = NotifyFilters.LastWrite
+        };
+
+        // Event when the file is changed
+        watcher.Changed += (sender, e) => OnChanged(e.FullPath, backupDir);
+        watcher.EnableRaisingEvents = true;
+
+        Console.WriteLine("Monitoring file changes... Press 'q' to quit.");
+        while (Console.Read() != 'q') ;
+    }
+
+    static void OnChanged(string sourceFilePath, string backupDir)
+    {
+        string currentTime = DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss");
+        string backupFileName = $"navdata_{currentTime}.sqlite";
+        string backupFilePath = Path.Combine(backupDir, backupFileName);
+
+        // Copy the file to the backup directory
+        File.Copy(sourceFilePath, backupFilePath, true);
+
+        // Clean up old backups (keep only the latest 20)
+        var backupFiles = new DirectoryInfo(backupDir)
+            .GetFiles("navdata_*.sqlite")
+            .OrderByDescending(f => f.LastWriteTime)
+            .Skip(20);
+
+        foreach (var file in backupFiles)
+        {
+            file.Delete();
+        }
+    }
+}
+```
+
+### Steps to Compile and Run the C# Program:
+1. Open **Visual Studio**.
+2. Create a new **Console Application** project.
+3. Replace the default `Program.cs` with the sample code.
+4. Adjust paths to your needs and build the project (`Build -> Build Solution`).
+5. The output will be a `.exe` file in the `bin\Debug` or `bin\Release` folder, depending on your build configuration.
+
+### Option 2: Using Python with PyInstaller
+If you're more comfortable with Python, you can use Python’s `watchdog` library to monitor file changes and `shutil` to handle file operations. The Python script can then be converted into an executable using **PyInstaller**.
+
+#### Sample Python Code:
+```python
+import time
+import os
+import shutil
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+from datetime import datetime
+
+# Directory and file details
+source_dir = r"C:\Users\wayne\AppData\Local\Programs\Sky4Sim NG"
+file_to_watch = "navdata.sqlite"
+backup_dir = r"F:\MSFS Addon-Library\Neofly"
+
+class Watcher:
+    def __init__(self, directory_to_watch):
+        self.observer = Observer()
+        self.directory_to_watch = directory_to_watch
+
+    def run(self):
+        event_handler = Handler()
+        self.observer.schedule(event_handler, self.directory_to_watch, recursive=False)
+        self.observer.start()
+        try:
+            while True:
+                time.sleep(5)
+        except KeyboardInterrupt:
+            self.observer.stop()
+        self.observer.join()
+
+class Handler(FileSystemEventHandler):
+    def on_modified(self, event):
+        if file_to_watch in event.src_path:
+            current_time = datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+            backup_file = os.path.join(backup_dir, f"navdata_{current_time}.sqlite")
+            shutil.copy2(event.src_path, backup_file)
+            print(f"Backup created: {backup_file}")
+
+            # Cleanup old backups (keeping only the last 20)
+            backups = sorted([f for f in os.listdir(backup_dir) if f.startswith("navdata_")],
+                             key=lambda f: os.path.getmtime(os.path.join(backup_dir, f)), reverse=True)
+            if len(backups) > 20:
+                for old_backup in backups[20:]:
+                    os.remove(os.path.join(backup_dir, old_backup))
+
+if __name__ == '__main__':
+    watcher = Watcher(source_dir)
+    watcher.run()
+```
+
+### Steps to Create Executable Using Python:
+1. Install dependencies:
+   ```bash
+   pip install watchdog pyinstaller
+   ```
+2. Save the Python script as `file_watcher.py`.
+3. Convert it to an executable using PyInstaller:
+   ```bash
+   pyinstaller --onefile file_watcher.py
+   ```
+4. The resulting executable will be in the `dist` folder.
+
+### Summary:
+- **C#**: Ideal if you're already familiar with .NET. You get better integration with Windows and a native executable.
+- **Python**: A flexible, simpler alternative if you're comfortable with Python, with the ability to easily convert scripts to executables using PyInstaller.
+
+Both options allow you to achieve your goal of monitoring file changes, creating backups, and managing the number of backups, with the flexibility to run as standalone executables on Windows 11.
